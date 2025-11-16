@@ -57,31 +57,7 @@ public static bool IsValidUrl(string url)
 ```
 <br>
 
-#
-
-#### Пустой спрайт также кэшируется для экономии времени
-
-```cs
-private static Sprite GetMissingSprite()
-{
-    if (_fallbackSprite != null)
-        return _fallbackSprite;
-
-    var texture = new Texture2D(1, 1);
-    texture.SetPixel(0, 0, Color.clear);
-    texture.Apply();
-
-    _fallbackSprite = Sprite.Create(
-        texture,
-        new Rect(0, 0, 1, 1),
-        Vector2.zero
-    );
-
-    return _fallbackSprite;
-}
-```
-
-#### Сохраение данных через библиотеку [MessagePack](https://github.com/MessagePack-CSharp/MessagePack-CSharp?tab=readme-ov-file#unity-support)
+#### Сохранение данных через библиотеку [MessagePack](https://github.com/MessagePack-CSharp/MessagePack-CSharp?tab=readme-ov-file#unity-support)
 > Чрезвычайно быстрый сериализатор для C# с поддержкой сериализации unity-типов
 
 ```cs
