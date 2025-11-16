@@ -6,44 +6,64 @@ namespace DefaultNamespace.UI
 {
     public class HUDController : MonoBehaviour
     {
-        [SerializeField] private Button _exitApp;
-        [SerializeField] private Button _loadingPins;
-        [SerializeField] private Button _savePins;
+        [SerializeField] private Button _exitButton;
+        [SerializeField] private Button _loadPinsButton;
+        [SerializeField] private Button _savePinsButton;
 
-        private PinStorage _pinStorage;
+        private IPinService _pinService;
 
-        public void Initialization(PinStorage pinStorage)
+        public void Initialization(IPinService pinService)
         {
-            _pinStorage = pinStorage;
+            _pinService = pinService;
         }
 
         private void Start()
         {
-            _exitApp.onClick.AddListener(ExitApp);
-            _loadingPins.onClick.AddListener(LoadingPins);
-            _savePins.onClick.AddListener(SavePins);
+            SubscribeButtons();
         }
 
-        private void ExitApp()
+        private void OnEnable()
         {
-            Application.Quit();
+            SubscribeButtons();
         }
         
+        private void OnDisable()
+        {
+            UnsubscribeButtons();
+        }
+
+        private void SubscribeButtons()
+        {
+            _exitButton.onClick.AddListener(QuitApplication);
+            _loadPinsButton.onClick.AddListener(LoadingPins);
+            _savePinsButton.onClick.AddListener(SavePins);
+        }
+
+        private void UnsubscribeButtons()
+        {
+            _exitButton.onClick.RemoveListener(QuitApplication);
+            _loadPinsButton.onClick.RemoveListener(LoadingPins);
+            _savePinsButton.onClick.RemoveListener(SavePins);
+        }
+
         private void LoadingPins()
         {
-            _pinStorage.LoadingPins();
+            _pinService.LoadPins();
         }
-        
+
         private void SavePins()
         {
-            _pinStorage.SavePins();
+            _pinService.SavePins();
         }
 
         private void OnDestroy()
         {
-            _exitApp.onClick.RemoveListener(ExitApp);
-            _loadingPins.onClick.RemoveListener(LoadingPins);
-            _savePins.onClick.RemoveListener(SavePins);
+            UnsubscribeButtons();
+        }
+
+        private static void QuitApplication()
+        {
+            Application.Quit();
         }
     }
 }

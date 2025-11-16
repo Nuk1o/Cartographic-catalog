@@ -1,4 +1,7 @@
-﻿using DefaultNamespace.Pin;
+﻿using System;
+using Cysharp.Threading.Tasks;
+using DefaultNamespace.Pin;
+using DG.Tweening;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -7,56 +10,139 @@ namespace DefaultNamespace.UI
 {
     public class CreatePinWindow : MonoBehaviour
     {
-        [SerializeField] private TMP_InputField _name;
-        [SerializeField] private TMP_InputField _imageURL;
-        [SerializeField] private TMP_InputField _description;
-
-        [SerializeField] private Button _save;
+        [SerializeField] private TMP_InputField _nameInput;
+        [SerializeField] private TMP_InputField _imageUrlInput;
+        [SerializeField] private TMP_InputField _descriptionInput;
+        [SerializeField] private Button _saveButton;
+        
+        [SerializeField] private RectTransform _panel;
+        [SerializeField] private CanvasGroup _panelCanvasGroup;
+        private Vector2 _originalPosition;
 
         private IPinService _pinService;
-        private GameObject _prefab;
-        private Transform _transform;
+        private PinStorage _pinStorage;
+        private PinModel _pinModel;
         private Vector3 _position;
-        private PinPopupView _pinPopupView;
 
-        public void Initialization(GameObject prefab, Transform parent, IPinService service, PinPopupView pinPopup)
+        private bool _isEditMode;
+
+        public Action<PinModel> OnCreatePin;
+        
+        private void Awake()
+        {
+            if (_panel != null)
+            {
+                _originalPosition = _panel.GetComponent<RectTransform>().anchoredPosition;
+            }
+        }
+
+        public void Initialization(PinStorage storage, IPinService service)
         {
             _pinService = service;
-            _prefab = prefab;
-            _transform = parent;
-            _pinPopupView = pinPopup;
+            _pinStorage = storage;
         }
-        
+
         public void SetPosition(Vector3 position)
         {
             _position = position;
         }
 
-        private void SavePin()
+        public void SetEditMode(bool isEditMode)
         {
-            if (CheckingInputs())
+            _isEditMode = isEditMode;
+        }
+
+        public void SetPinModel(PinModel model)
+        {
+            _pinModel = model;
+
+            if (!_isEditMode)
+                return;
+
+            _nameInput.text = model.Name;
+            _imageUrlInput.text = model.ImageURL;
+            _descriptionInput.text = model.Description;
+        }
+
+        private void HandleSaveButtonClick()
+        {
+            if (_isEditMode)
             {
-                Sprite image = null; //TODO Create loading sprite
-                var model = new PinModel(_name.text,_imageURL.text,_description.text, image);
-                _pinService.CreatePin(_prefab,_position,_transform,model,_pinPopupView);
+                EditPin(_pinModel);
+            }
+            else
+            {
+                SavePin();
+            }
+        }
+
+        private async UniTask SavePin()
+        {
+            if (ValidateInputs())
+            {
+                var image = await _pinStorage.LoadSpriteAsync(_imageUrlInput.text);
+                var model = new PinModel(_nameInput.text, _imageUrlInput.text, _descriptionInput.text, _position,
+                    image);
+                OnCreatePin.Invoke(model);
             }
             else
             {
                 Debug.Log("Введите все данные!");
             }
+
             gameObject.SetActive(false);
         }
 
-        private bool CheckingInputs() => _name.text.Length > 0 || _imageURL.text.Length > 0 || _description.text.Length > 0;
+        private void EditPin(PinModel model)
+        {
+            if (ValidateInputs())
+            {
+                _pinService.EditPin(model, _nameInput.text, _imageUrlInput.text, _descriptionInput.text);
+            }
+            else
+            {
+                Debug.Log("Введите все данные!");
+            }
+
+            gameObject.SetActive(false);
+        }
+
+        private bool ValidateInputs() =>
+            _nameInput.text.Length > 0 && _imageUrlInput.text.Length > 0 && _descriptionInput.text.Length > 0;
 
         private void OnEnable()
         {
-            _save.onClick.AddListener(SavePin);
+            _saveButton.onClick.AddListener(HandleSaveButtonClick);
+            ResetInputFields();
+            AnimatePanelIn();
+        }
+        
+        private void AnimatePanelIn()
+        {
+            _panel.anchoredPosition = _originalPosition + new Vector2(0, -150);
+            _panelCanvasGroup.alpha = 0f;
+            _panelCanvasGroup.blocksRaycasts = false;
+
+            var panelSequence = DOTween.Sequence();
+        
+            panelSequence
+                .Append(_panel.DOAnchorPos(_originalPosition, 0.6f)
+                    .SetEase(Ease.OutQuint))
+                .Join(_panelCanvasGroup.DOFade(1f, 0.5f))
+                .OnComplete(() => _panelCanvasGroup.blocksRaycasts = true)
+                .SetLink(gameObject);
+        }
+
+        private void ResetInputFields()
+        {
+            _nameInput.text = string.Empty;
+            _imageUrlInput.text = string.Empty;
+            _descriptionInput.text = string.Empty;
         }
 
         private void OnDisable()
         {
-            _save.onClick.RemoveListener(SavePin);
+            _saveButton.onClick.RemoveListener(HandleSaveButtonClick);
         }
     }
 }

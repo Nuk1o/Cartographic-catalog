@@ -1,11 +1,12 @@
-﻿using DefaultNamespace.UI;
-using UnityEngine;
+﻿using Cysharp.Threading.Tasks;
 
 namespace DefaultNamespace.Pin
 {
     public interface IPinService
     {
-        void CreatePin(GameObject prefab, Vector3 position, Transform parent,PinModel models, PinPopupView popupView);
-        void CreatePinTest();
+        void DeletePin(PinModel model);
+        UniTask LoadPins();
+        UniTask SavePins();
+        void EditPin(PinModel model, string nameText, string imageURLText, string descriptionText);
     }
 }

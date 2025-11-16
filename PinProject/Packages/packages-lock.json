@@ -1,5 +1,12 @@
 {
   "dependencies": {
+    "com.github.messagepack-csharp": {
+      "version": "https://github.com/MessagePack-CSharp/MessagePack-CSharp.git?path=src/MessagePack.UnityClient/Assets/Scripts/MessagePack",
+      "depth": 0,
+      "source": "git",
+      "dependencies": {},
+      "hash": "39e4a792100d19e7da6ed42ff12b3bc21aac28e8"
+    },
     "com.unity.collab-proxy": {
       "version": "2.10.2",
       "depth": 0,

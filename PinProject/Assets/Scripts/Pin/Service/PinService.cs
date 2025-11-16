@@ -1,25 +1,82 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
+using Cysharp.Threading.Tasks;
+using DefaultNamespace.Map;
 using DefaultNamespace.UI;
-using UnityEngine;
 
 namespace DefaultNamespace.Pin
 {
     public class PinService : IPinService
     {
-        public List<PinModel> PinModels { get; set; } = new List<PinModel>();
+        private readonly CreatePinWindow _pinWindow;
+        private readonly MapView _mapView;
+        private readonly PinStorage _pinStorage;
+        private List<PinModel> _pinModels { get; set; } = new ();
+        private int _nextPinId = 1;
 
-        public void CreatePin(GameObject prefab, Vector3 position, Transform parent, PinModel model,
-            PinPopupView popupView)
+        public PinService(CreatePinWindow pinWindow, MapView mapView, PinStorage storage)
         {
-            var pin = Object.Instantiate(prefab, position, Quaternion.identity, parent);
-            pin.GetComponent<PinView>().Initialization(popupView,model);
-            PinModels.Add(model);
-            Debug.Log($"List {PinModels.Count}");
+            _pinWindow = pinWindow;
+            _pinStorage = storage;
+            _mapView = mapView;
+
+            _pinWindow.OnCreatePin += CreatePin;
+            InitializeNextPinId();
+        }
+        
+        private void InitializeNextPinId()
+        {
+            if (_pinModels.Count > 0)
+            {
+                _nextPinId = _pinModels.Max(m => m.ID) + 1;
+            }
         }
 
-        public void CreatePinTest()
+        private void CreatePin(PinModel model)
         {
-            Debug.Log($"Test create");
+            model.ID = _nextPinId++;
+            _pinModels.Add(model);
+            ShowPin(model);
+        }
+
+        private void ShowPin(PinModel model)
+        {
+            _mapView.ShowPin(model);
+        }
+
+        public void DeletePin(PinModel model)
+        {
+            _mapView.HidePin(model.ID);
+            _pinModels.Remove(model);
+        }
+
+        public async UniTask LoadPins()
+        {
+            _pinModels = new List<PinModel>();
+            _mapView.ClearAllPins();
+            _pinModels.Clear();
+            _pinModels = await _pinStorage.LoadPins();
+            _nextPinId = _pinModels.Count > 0 
+                ? _pinModels.Max(m => m.ID) + 1 
+                : 1;
+            foreach (var model in _pinModels)
+            {
+                ShowPin(model);
+            }
+        }
+
+        public async UniTask SavePins()
+        {
+            await _pinStorage.SavePins(_pinModels);
+        }
+
+        public async void EditPin(PinModel model, string nameText, string imageURLText, string descriptionText)
+        {
+            model.Name = nameText;
+            model.Description = descriptionText;
+            model.ImageURL = imageURLText;
+            var sprite = await _pinStorage.LoadSpriteAsync(imageURLText);
+            model.Image = sprite;
         }
     }
 }
